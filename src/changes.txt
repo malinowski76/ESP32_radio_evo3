@@ -1,4 +1,9 @@
 Changes tracking file for ESP Radio EVO version
+3.19.19
+- corrected bitrate dispaly with estiamted bitrate
+- in station list menu left and right arrows now increase station count by 5 (speed move on list)
+- add remote POWER OFF/ON option puting ESP32 in light sleep mode. Function under rcCmdRed button on remote
+
 
 3.19.11
 - this is copy of version 3.18.21 with support for new audio i2s library and ESP32 core 
