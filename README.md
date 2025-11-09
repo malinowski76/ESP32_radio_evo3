@@ -95,7 +95,7 @@ For Platformio look into src folder -> Platformio folder and Platformio.ini file
 - Async TCP 3.3.6 
 
 ## Web server
-Radio has buit in small web server with simple webpage for list stations, bank select, volume control and access to some settings
+Radio has buit in small web server with simple webpage for list stations, bank select, volume control and access to settings menu
 <p><img src="Photos\RadioWeb1.png" title="ESP32 Radio" width="750" height="580"></p>
 
 ## Remote Control
