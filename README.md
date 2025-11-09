@@ -1,4 +1,4 @@
-# ESP32 Internet Radio - Evo3 (Evolution 3)
+# ESP32 Web Radio Evo3 (Evolution 3)
 
 <p align="center">
   <img src="Photos\WebRadio1.png" title="ESP32 Radio">
@@ -6,17 +6,20 @@
   <img src="Photos\RadioAsm2.png" title="ESP32 Radio">        
   <img src="Photos\ESP_radio_rev1.0_PCBvis1.png" title="ESP32 Radio">
   <img src="Photos\ESP32_PCB_vis02.png" title="ESP32 Radio">
-  <img src="Photos\Display1.png" title="ESP32 Radio">
-  <img src="Photos\Display2.png" title="ESP32 Radio">
+  <img src="Photos\DisplayMode0.png" title="ESP32 Radio">
+  <img src="Photos\DisplayMode1.png" title="ESP32 Radio">
+  <img src="Photos\DisplayMode2.png" title="ESP32 Radio">  
+  <img src="Photos\DisplayMode3.png" title="ESP32 Radio">
+  <img src="Photos\DisplayMode4.png" title="ESP32 Radio">
 </p>
 
 
 ## Overview
-
 This is project of Internet Radio Streamer called "Evo". Hardware was buid using EPS32-S3 and DAC codec PCM5102A. Construction allows to listen varius music station from all aroudn world.
 working properly with streams coded in MP3, AAC, VORBIS and FLAC (up to 1.5Mbit). Support all operations (volume control, stations changes, memory bank change, power on/off) on single rotary 
 encoder and aslo cooeprate with infrared remote controls working on NEC standars (38kHz).
 
+Project is NOT based on yoRadio.
 
 - Internet radio stream station from bank files (can be stored on SD card or downloaded from GitHub)
 - I2S simple PCM5102A decoder support
@@ -39,7 +42,6 @@ encoder and aslo cooeprate with infrared remote controls working on NEC standars
 
 
 ## Hardware
-
 - ESP32-S3 dev. module with internal antena or external antena connector
 - SD or micro SD card reader
 - 256x64 OLED display based on SSD1322 or SH1122 driver IC
@@ -50,7 +52,6 @@ encoder and aslo cooeprate with infrared remote controls working on NEC standars
 
  
 ## Software
-
 Project was coded in Arduino platform but ready main.cpp for Platformio avalable and also tested
 
 How to compile (Arduino):
@@ -66,7 +67,6 @@ For Platformio look into src folder -> Platformio folder and Platformio.ini file
 
 
 ## Software Dependencies
-
 [ESP Espressif 3.2.0 libs]
 - WiFi 3.2.0 
 - Networking 3.2.0 
@@ -94,25 +94,11 @@ For Platformio look into src folder -> Platformio folder and Platformio.ini file
 - ESP Async WebServer w wersji 3.7.2
 - Async TCP 3.3.6 
 
-## Remote Controler
-
-Radio by defualt is programmed to use small popular Kenwood RC-406 remote controller. Bellow is the map key functions:
-<img src="Photos\RemoteControlMap_RC406_rev1.10.png" title="ESP32 Radio Remote Controler">
-
-
-## Radio Web Server
-
-There is small simpel dedicated Webserver for control radio and set some settings.
-<img src="Photos\RadioWeb1.png" title="ESP32 Radio Web Page">
-
-
 ## Usage
-
 Radio can be build only with ESP32-S3 dev. module and PCM5102A. In this configartion last station, memory bank number and volume will be stored in EEPROM. Control is possible via web page or IR remote control RC-406.
-For full experience connect SD card (look on schematic or source code for pinout), one encoder, IR receiver (please use orginal Vishay instead of cheap clones).
+For full experience connect SD card (look on schematic or source code), encoder, IR receiver.
 
 NEC standard codes for remote controler are stored on SD card in "remote.txt" file. Example files you can find inside "SD card content" folder.
-
 
 ### Radio Station URLs
 The radio streams URL addresses are defined in banks files, each bank is downloaded at first run and stored on SD card as separate txt file: Bank01.txt, Bank02.txt etc.
@@ -126,7 +112,6 @@ STATIONS_URL16 "https://raw.githubusercontent.com/dzikakuna/ESP32_radio_streams/
 
 
 ## License
-
 This project is open-source and licensed under the [MIT License](https://opensource.org/licenses/MIT). 
 Feel free to contribute and improve the code.
 
@@ -139,6 +124,5 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 ## Others
-
 - This project was inspired by https://github.com/sarunia/ESP32_radio_player_v2
 - More informations you can read here: https://www.elektroda.pl/rtvforum/topic4041603.html
