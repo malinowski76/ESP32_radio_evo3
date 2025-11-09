@@ -101,7 +101,7 @@ Radio has buit in small web server with simple webpage for list stations, bank s
 ## Remote Control
 There is pre coded  (you cna change it by editign remote.txt file on SD card) Remote Controler RC-406 (Kenwood clone)
 Key mapping:
-<img src="Photos\RemoteControlMap_RC406_rev1.10.png" title="ESP32 Radio">
+<img src="Photos\RemoteControlMap_RC406_rev1.10.png" title="ESP32 Radio" width="500" height="300">
 
 
 ## Usage
