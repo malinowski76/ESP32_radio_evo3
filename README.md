@@ -96,11 +96,10 @@ For Platformio look into src folder -> Platformio folder and Platformio.ini file
 
 ## Web server
 Radio has buit in small web server with simple webpage for list stations, bank select, volume control and access to some settings
-<img src="Photos\RadioWeb1.png" title="ESP32 Radio">
+<img src="Photos\RadioWeb1.png" title="ESP32 Radio" width="750" height="580">
 
 ## Remote Control
-There is pre coded  (you cna change it by editign remote.txt file on SD card) Remote Controler RC-406 (Kenwood clone)
-Key mapping:
+There is pre coded  (you cna change it by editign remote.txt file on SD card) Remote Controler RC-406 (Kenwood clone). Key mapping:
 <img src="Photos\RemoteControlMap_RC406_rev1.10.png" title="ESP32 Radio" width="500" height="300">
 
 
