@@ -6,11 +6,11 @@
   <img src="Photos\RadioAsm2.png" title="ESP32 Radio">        
   <img src="Photos\ESP_radio_rev1.0_PCBvis1.png" title="ESP32 Radio">
   <img src="Photos\ESP32_PCB_vis02.png" title="ESP32 Radio">
-  <img src="Photos\DisplayMode0.png" title="ESP32 Radio">
-  <img src="Photos\DisplayMode1.png" title="ESP32 Radio">
-  <img src="Photos\DisplayMode2.png" title="ESP32 Radio">  
-  <img src="Photos\DisplayMode3.png" title="ESP32 Radio">
-  <img src="Photos\DisplayMode4.png" title="ESP32 Radio">
+  <img src="Photos\DisplayMode0.png" title="ESP32 Radio" width="420" height="160">
+  <img src="Photos\DisplayMode1.png" title="ESP32 Radio" width="420" height="160">
+  <img src="Photos\DisplayMode2.png" title="ESP32 Radio" width="420" height="160">  
+  <img src="Photos\DisplayMode3.png" title="ESP32 Radio" width="420" height="160">
+  <img src="Photos\DisplayMode4.png" title="ESP32 Radio" width="420" height="160">
 </p>
 
 
