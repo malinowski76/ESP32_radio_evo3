@@ -1,5 +1,13 @@
 Changes tracking file for ESP Radio EVO version
 
+3.19.33
+- Corrected reaction on digits keys when playing from URL
+- Configuration File: Updated to include reaction after power fail
+- Radiobroswer: update web page to autodedect IP/Hostname
+- Udpate Info Web Page with documentation links
+- New Start Logo with "Evo"
+
+
 3.19.32
 - Power Modes: Full reset functionality added after wake-up; ON/OFF function can be controlled via remote control or encoder switch
 - Power Status Control: Reset source dedection add, if there was blackout radio will go to sleep mode

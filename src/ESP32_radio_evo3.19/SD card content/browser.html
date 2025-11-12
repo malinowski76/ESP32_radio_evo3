@@ -42,11 +42,11 @@
 </head>
 <body>
 <h2> Evo Web Radio - Radiobrowser
-  <span style="font-size:0.8rem; font-weight:normal; color:#333;">rev. 1.7</span>
+  <span style="font-size:0.8rem; font-weight:normal; color:#333;">rev. 1.8</span>
 </h2>
-<p style="font-size: 0.8rem; margin-top:-6px;">
-  <a href="/">Go Back</a>
-</p>
+<p style="font-size: 0.8rem; margin-top:-6px;"><a href="/">Go Back</a></p>
+<span>Host: <p id="hostInfo" style="font-size:0.85rem; color:#222; width: 120px;align-items: center; background:#fff; border:1px solid #aaa; display:inline-block; padding:6px 10px; border-radius:6px;"><b>detecting...</b></p></span>
+
 
 <div class="column">
   <select id="countrySelect"><option value="">- Country -</option></select>
@@ -81,6 +81,10 @@ const searchBtn = document.getElementById("searchBtn");
 const resultsDiv = document.getElementById("results");
 const statusP = document.getElementById("status");
 const playerArea = document.getElementById("playerArea");
+
+const hostInfo = document.getElementById("hostInfo");
+const currentHost = window.location.hostname || "localhost";
+hostInfo.innerHTML = `<b>${currentHost}</b>`;
 
 const checkBoxes = document.getElementById("checkBoxes");
 const codecOptions = ["MP3","AAC","FLAC","OGG","Opus","WMA","WAV","AIFF"];
@@ -168,7 +172,9 @@ function copyLink(e, url) {
 }
 
 async function sendToEvoPlay(url, btn) {
-  const evoUrl = `http://evoradio.local/update?url=${encodeURIComponent(url)}`;
+  const host = window.location.hostname || "localhost";
+  const evoUrl = `http://${host}/update?url=${encodeURIComponent(url)}`;
+
   try {
     await fetch(evoUrl, { mode: "no-cors" });
     const msg = document.createElement("span");
@@ -178,7 +184,7 @@ async function sendToEvoPlay(url, btn) {
     btn.after(msg);
     setTimeout(() => msg.remove(), 2000);
   } catch (err) {
-    alert("Nie udało się połączyć z odtwarzaczem Evo.");
+    alert(`Nie udało się połączyć z odtwarzaczem Evo (${evoUrl}).`);
   }
 }
 
