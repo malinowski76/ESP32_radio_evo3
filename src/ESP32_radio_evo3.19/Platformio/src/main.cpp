@@ -27,7 +27,7 @@
 #include "esp_system.h"
 
 // Deklaracja wersji oprogramowania i nazwy hosta widocznego w routerze oraz na ekranie OLED i stronie www
-#define softwareRev "v3.19.47"  // Wersja oprogramowania radia
+#define softwareRev "v3.19.48"  // Wersja oprogramowania radia
 #define hostname "evoradio"   // Definicja nazwy hosta widoczna na zewnątrz
 
 // Definicja pinow czytnika karty SD
@@ -254,7 +254,7 @@ uint8_t rcPage = 0;
 uint16_t configRemoteArray[30] = { 0 };   // Tablica przechowująca kody pilota podczas odczytu z pliku
 uint16_t configAdcArray[20] = { 0 };      // Tablica przechowująca wartosci ADC dla przyciskow klawiatury
 bool configExist = true;                  // Flaga okreslajaca czy istnieje plik konfiguracji
-bool f_displayPowerOffClock = true;       // Flaga okreslajaca czy w trybie sleep ma się wyswietlac zegar
+bool f_displayPowerOffClock = false;       // Flaga okreslajaca czy w trybie sleep ma się wyswietlac zegar
 bool f_sleepAfterPowerFail = false;       // Flaga czy idziemy do powerOFF po powrocie zasilania
 
 //const int maxVisibleLines = 5;  // Maksymalna liczba widocznych linii na ekranie OLED
@@ -439,17 +439,17 @@ const char stylehead_html[] PROGMEM = R"rawliteral(
       .button { background-color: #4CAF50; border: 1; color: white; padding: 10px 20px; border-radius: 5px;}
       .buttonBank { background-color: #4CAF50; border: 1; color: white; padding: 8px 8px; border-radius: 5px; width: 35px; height: 35px; margin: 0 1.5px;}
       .buttonBankSelected { background-color: #505050; border: 1; color: white; padding: 8px 8px; border-radius: 5px; width: 35px; height: 35px; margin: 0 1.5px;}
-      .buttonBank:active {background-color: #4a4a4a box-shadow: 0 4px #666; transform: translateY(2px);}
+      .buttonBank:active {background-color: #4a4a4a; box-shadow: 0 4px #666; transform: translateY(2px);}
       .buttonBank:hover {background-color: #4a4a4a;}
       .button:hover {background-color: #4a4a4a;}
       .button:active {background-color: #4a4a4a; box-shadow: 0 4px #666; transform: translateY(2px);}
-      .column { align: center; padding: 5px; display: flex; justify-content: space-between;}
-      .columnlist { align: center; padding: 10px; display: flex; justify-content: center;}
+      .column {padding: 5px; display: flex; justify-content: space-between;}
+      .columnlist {padding: 10px; display: flex; justify-content: center;}
       .stationList {text-align:left; margin-top: 0px; width: 280px; margin-bottom:0px;cursor: pointer;}
       .stationNumberList {text-align:center; margin-top: 0px; width: 35px; margin-bottom:0px;}
       .stationListSelected {text-align:left; margin-top: 0px; width: 280px; margin-bottom:0px;cursor: pointer; background-color: #4CAF50;}
       .stationNumberListSelected {text-align:center; margin-top: 0px; width: 35px; margin-bottom:0px; background-color: #4CAF50;}
-      .station-name   
+      .station-name {}  
     </style>
   </head>
 )rawliteral";
@@ -488,8 +488,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       .stationList {text-align:left; margin-top: 2px; width: 280px; height:18px; margin-bottom:0px;cursor: pointer;}
       .stationNumberList {text-align:center; margin-top: 2px; width: 35px; height:18px; margin-bottom:0px;}
       .stationListSelected {text-align:left; margin-top: 2px; width: 280px; height:18px; margin-bottom:0px;cursor: pointer; background-color: #4CAF50;}
-      .stationNumberListSelected {text-align:center; margin-top: 2px; width: 35px; height:18px; margin-bottom:0px; background-color: #4CAF50;}
-      .station-name   
+      .stationNumberListSelected {text-align:center; margin-top: 2px; width: 35px; height:18px; margin-bottom:0px; background-color: #4CAF50;} 
     </style>
   </head>
 
@@ -520,8 +519,8 @@ const char index_html[] PROGMEM = R"rawliteral(
       
         <div style="display: flex; justify-content: center; gap: 10px; font-size: 0.65rem; color: #999;margin: 3px 0;">
           <div><span id="samplerate">---.-kHz</span></div>
-          <div><span id="bitrate">---bit</span></div>
-          <div><span id="bitpersample">---kbps</span></div>
+          <div><span id="bitrate">---kbps</span></div>
+          <div><span id="bitpersample">---bit</span></div>
           <div><span id="streamformat">----</span></div>
         </div>
         
@@ -606,7 +605,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     websocket.onerror = function (error) 
     {
       console.error("Blad WebSocket: ", error);
-      websocket.close(); // zamyka połączenie, by wywołać reconnect
+      //websocket.close(); // zamyka połączenie, by wywołać reconnect
     };
     
     websocket.onmessage = function(event) 
@@ -623,19 +622,6 @@ const char index_html[] PROGMEM = R"rawliteral(
         document.getElementById("textSliderValue").innerText = vol;
       }
       
-      if (event.data.startsWith("mute:")) 
-      {
-        var mute = parseInt(event.data.split(":")[1]);
-        if (mute === 1) 
-        { 
-          document.getElementById('muteIndicator').innerText = "MUTED";
-        } 
-        else 
-        {
-          document.getElementById('muteIndicator').innerText = "";
-        }
-      }
-
       if (event.data.startsWith("station:")) 
       {
         var station = parseInt(event.data.split(":")[1]);
@@ -653,8 +639,11 @@ const char index_html[] PROGMEM = R"rawliteral(
 
       if (event.data.startsWith("stationtext$")) 
       {
-        var stationtext = event.data.split("$")[1];
-        document.getElementById("stationText").innerHTML = `${stationtext}`;
+        //var stationtext = event.data.split("$")[1];
+        var stationtext = event.data.substring(event.data.indexOf("$") + 1);
+        //document.getElementById("stationText").innerHTML = stationtext;
+        document.getElementById("stationText").textContent = stationtext;
+        //document.getElementById("stationText").innerHTML = `${stationtext}`;
         //checkStationTextLength();
       }  
 
@@ -689,6 +678,19 @@ const char index_html[] PROGMEM = R"rawliteral(
         document.getElementById('streamformat').innerText = streamformat;
       }  
 
+      if (event.data.startsWith("mute:")) 
+      {
+        var muteInd = parseInt(event.data.split(":")[1]);
+        if (muteInd === 1) 
+        { 
+          document.getElementById('muteIndicator').innerText = 'MUTED';
+        } 
+        else 
+        {
+          document.getElementById('muteIndicator').innerText = '';
+        }
+      }
+
     }
 
   };
@@ -698,7 +700,10 @@ const char index_html[] PROGMEM = R"rawliteral(
     // Usuń poprzednie zaznaczenia
     document.querySelectorAll(".stationList").forEach(el => {
     el.classList.remove("stationListSelected");
-    el.innerHTML = el.dataset.stationName || el.innerText; // przywróć oryginalny numer
+    //el.innerHTML = el.dataset.stationName || el.innerText; // przywróć oryginalny numer
+    el.innerText = el.dataset.stationName || el.innerText;
+
+
     });
 
     document.querySelectorAll(".stationNumberList").forEach(el => {
@@ -721,10 +726,22 @@ const char index_html[] PROGMEM = R"rawliteral(
       // Pogrub nazwę stacji
       stationCell.dataset.stationName = stationCell.innerText; // zapisz oryginalny tekst
       stationCell.innerHTML = `<b>${stationCell.innerText}</b>`; // pogrubienie nazwy stacji
+
+      //const original = stationCell.dataset.originalName || stationCell.innerText;
+      //stationCell.dataset.originalName = original;
+      //stationCell.innerText = original;
+      //stationCell.style.fontWeight = "bold";
+
         
       // Pogrub numer
       numCell.dataset.stationNumber = numCell.innerText; // zapisz oryginalny numer
       numCell.innerHTML = `<b>${numCell.innerText}</b>`; 
+      //const originalNum = numCell.dataset.originalNumber || numCell.innerText;
+      //numCell.dataset.originalNumber = originalNum;
+      //numCell.innerText = originalNum;
+      //numCell.style.fontWeight = "bold";
+
+
     }
   }
   
@@ -848,7 +865,7 @@ const char config_html[] PROGMEM = R"rawliteral(
   <tr><td>Dimmed Display Brightness in Sleep Mode (0-50), default:1</td><td><input type="number" name="dimmerSleepDisplayBrightness" min="1" max="50" value="%D12"></td></tr>
   <tr><td>Auto Dimmer Delay Time (1-255 sec.), default:5</td><td><input type="number" name="displayAutoDimmerTime" min="1" max="255" value="%D3"></td></tr>
   <tr><td>Auto Dimmer, default:On</td><td><input type="checkbox" name="displayAutoDimmerOn" value="1" %S1_checked></td></tr>
-  <tr><td>OLED Display Clock in Sleep Mode default:On</td><td><input type="checkbox" name="f_displayPowerOffClock" value="1" %S19_checked></td></tr>
+  <tr><td>OLED Display Clock in Sleep Mode default:Off</td><td><input type="checkbox" name="f_displayPowerOffClock" value="1" %S19_checked></td></tr>
   <tr><td>OLED Display Power Save Mode, default:Off</td><td><input type="checkbox" name="displayPowerSaveEnabled" value="1" %S9_checked></td></tr>
   <tr><td>OLED Display Power Save Time (1-600sek.), default:20</td><td><input type="number" name="displayPowerSaveTime" min="1" max="600" value="%D9"></td></tr>
   <tr><td>OLED Display Mode (0-4), 0-Radio scroller, 1-Clock, 2-Three lines, 3-Minimal 4-VU meters</td><td><input type="number" name="displayMode" min="0" max="4" value="%D6"></td></tr>
@@ -5705,8 +5722,8 @@ void readConfig()
     int lineStart = line.indexOf("=") + 1;  // Szukamy miejsca, gdzie zaczyna wartość zmiennej
     if ((lineStart != -1)) //&& (currentLine != 0)) // Pomijamy pierwszą linijkę gdzie jest opis pliku
 	  {
-      configValue = line.substring(lineStart);  // Wyciągamy URL od "http"
-      configValue.trim();                      // Usuwamy białe znaki na początku i końcu
+      configValue = line.substring(lineStart);  // Wyciągamy numer od miejsc a"="
+      configValue.trim();                       // Usuwamy białe znaki na początku i końcu
       Serial.print("debug SD -> Odczytano zmienna konfiguracji numer:" + String(currentLine) + " wartosc:");
       Serial.println(configValue);
       configArray[currentLine] = configValue.toInt();
@@ -6434,6 +6451,64 @@ void sleepTimer()
   }
 }
 
+void powerOffAnimation2() 
+{
+  int width = u8g2.getDisplayWidth();
+  int height = u8g2.getDisplayHeight();
+  const int totalFrames = 100;
+  const int numColumns = 16; // liczba kolumn „Matrixa”
+
+  // Tablica przechowująca aktualną pozycję każdej kolumny
+  int colY[numColumns];
+  int colSpeed[numColumns];
+
+  // Inicjalizacja kolumn
+  for (int i = 0; i < numColumns; i++) 
+  {
+    colY[i] = random(-height, 0);    // start nad ekranem
+    colSpeed[i] = random(1, 4);      // różna prędkość spadania
+  }
+
+  // Animacja
+  for (int frame = 0; frame < totalFrames; frame++) 
+  {
+    u8g2.clearBuffer();
+    for (int i = 0; i < numColumns; i++) 
+    {
+      int x = i * (width / numColumns); // pozycja kolumny w poziomie
+      int y = colY[i];
+
+      // Rysujemy kilka bloków w dół w kolumnie, jak „kaskada”
+      for (int k = 0; k < 6; k++) 
+      {
+        int yy = y - k * 2; // odległość między blokami
+        if (yy >= 0 && yy < height) 
+        {
+          u8g2.drawPixel(x, yy);
+        }
+      }
+
+      // przesunięcie kolumny w dół
+      colY[i] += colSpeed[i];
+  
+      // reset kolumny, jeśli wypadnie poza ekran
+      if (colY[i] > height + 6 * 2) 
+      {
+        colY[i] = random(-height, 0);
+        colSpeed[i] = random(1, 4);
+      }
+    }
+
+    u8g2.sendBuffer();
+    delay(25);
+  }
+
+  // Całkowite wygaszenie ekranu
+  u8g2.clearBuffer();
+  u8g2.sendBuffer();
+}
+
+
 void powerOffAnimation() 
 {
   int width  = u8g2.getDisplayWidth();
@@ -6611,11 +6686,18 @@ void prePowerOff()
   delay(1000);
   if (f_powerOffAnimation) {powerOffAnimation(); u8g2.clearBuffer();}
   
-  if (f_displayPowerOffClock){u8g2.setPowerSave(0);} // Wyłącz ekran jesli zegar ma byc wyłaczony
-  else {u8g2.setPowerSave(1); powerOffClock();} 
+  if (f_displayPowerOffClock)
+  {
+    u8g2.setPowerSave(0);
+    powerOffClock();
+  } 
+  // Wyłącz ekran jesli zegar ma byc wyłaczony
+  else 
+  {
+    u8g2.setPowerSave(1);
+  } 
   
   delay(25);
-
   // -------- ZERUJEMY SLEEP TIMER ------------------
   sleepTimerValueSet = 0;
   sleepTimerValueCounter = 0;
@@ -6624,141 +6706,6 @@ void prePowerOff()
   f_displaySleepTime = false;
   timer3.detach();
 }
-
-
-void powerOff2()
-{
-    f_powerOff = true;
-    Serial.println("debug Power -> Usypiam ESP, power off");
-
-    while (f_powerOff)
-    {
-        // ---------------- RESET STANÓW IR ----------------
-        bit_count = 0;
-        ir_code = 0;
-        data_start_detected = false;
-        pulse_ready = false;
-        pulse_ready9ms = false;
-        delay(5);
-
-        // ---------------- USTAWIAMY WAKEUP ----------------
-        esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
-
-        #ifdef twoEncoders
-        uint64_t wakeMask = (1ULL << recv_pin) | (1ULL << SW_POWER) | (1ULL << SW_PIN1);
-        #else
-        uint64_t wakeMask = (1ULL << recv_pin) | (1ULL << SW_POWER);
-        #endif
-
-        esp_sleep_enable_ext1_wakeup(wakeMask, ESP_EXT1_WAKEUP_ANY_LOW);
-        //esp_sleep_enable_timer_wakeup(micros2nextMinute);
-
-
-        // ---------------- DEZAKTYWACJA PERYFERIOW i AKTYWACJA ZEGARA (jesli właczony) ----------------
-        if (f_displayPowerOffClock) 
-        {
-          esp_sleep_enable_timer_wakeup(micros2nextMinute); 
-          powerOffClock();
-        }
-        WiFi.mode(WIFI_OFF);
-        btStop();
-        Serial.end();
-        
-        // --------LED STANDBY (przygotowanie pod przekaźnik) ----------------
-        pinMode(STANDBY_LED, OUTPUT);
-        digitalWrite(STANDBY_LED, HIGH);
-
-
-        // ---------------- SLEEP ----------------
-        delay(10);
-        esp_light_sleep_start();
-
-
-        // ------------- TU SIĘ OBUDZIMY ----------------
-
-
-        // Jesli obudził nas timer to robimy aktulizacje zegera i wracamy na początek petli while
-        esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-        if (cause == ESP_SLEEP_WAKEUP_TIMER)
-        {
-            if (f_displayPowerOffClock) {powerOffClock();}
-            delay(5);
-            continue;   // wraca do while – ESP idzie znowu spać
-        }
-
-
-        // Konfiguracja przerwania IR
-        attachInterrupt(digitalPinToInterrupt(recv_pin), pulseISR, CHANGE);
-        delay(100); // stabilizacja
-
-        /*
-        // Konfigurujemy piny
-        pinMode(recv_pin, INPUT);
-        pinMode(SW_POWER, INPUT_PULLUP);
-        #ifdef twoEncoders
-        pinMode(SW_PIN1, INPUT_PULLUP);
-        #endif
-
-        delay(2); // stabilizacja GPIO
-        
-
-        // Odśwież zegar (jeśli aktywny)
-        if (f_displayPowerOffClock)
-        {
-            powerOffClock();
-        }
-        */
-
-        // Analiza IR
-        ir_code = reverse_bits(ir_code, 32);
-        uint8_t CMD  = (ir_code >> 16) & 0xFF;
-        uint8_t ADDR = ir_code & 0xFF;
-        ir_code = (ADDR << 8) | CMD;
-
-
-        // Warunek POWER UP
-        #ifdef twoEncoders
-        bool POWER_UP =
-            (bit_count == 32 && ir_code == rcCmdPower && f_powerOff) ||
-            (digitalRead(SW_POWER) == LOW) ||
-            (digitalRead(SW_PIN1) == LOW);
-        #else
-        bool POWER_UP =
-            (bit_count == 32 && ir_code == rcCmdPower && f_powerOff) ||
-            (digitalRead(SW_POWER) == LOW);
-        #endif
-
-
-        // ------------------ WSTAEMY po poprawny rozpoznaiu kodu (lub nie, else) -----------------
-        if (POWER_UP)
-        {
-            detachInterrupt(digitalPinToInterrupt(recv_pin));
-
-            esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_EXT1);
-            esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
-
-            f_powerOff = false;
-            displayActive = true;
-
-            Serial.println("debug Power IR -> Power ON, restart ESP");
-
-            u8g2.setPowerSave(0);
-            displayCenterBigText("POWER ON", 36);
-            pinMode(STANDBY_LED, OUTPUT);
-            digitalWrite(STANDBY_LED, LOW);
-
-            delay(800);
-
-            // Twardy restart
-            REG_WRITE(RTC_CNTL_OPTIONS0_REG, RTC_CNTL_SW_SYS_RST);
-            break;
-        }
-
-        // Nie to nie POWER_UP -> rozpinamy przerwanie IR
-        detachInterrupt(digitalPinToInterrupt(recv_pin));
-    }
-}
-
 
 void powerOff()
 {
@@ -6884,18 +6831,6 @@ void powerOff()
 void setup() 
 {
 
-/*
-  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-  if (cause == ESP_SLEEP_WAKEUP_EXT1) {esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_EXT1);}
-  else if (cause == ESP_SLEEP_WAKEUP_TIMER) { esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);}
-  
-  #ifdef twoEncoders
-  rtc_gpio_deinit((gpio_num_t)SW_PIN1);
-  #endif
-  rtc_gpio_deinit((gpio_num_t)SW_POWER);
-  rtc_gpio_deinit((gpio_num_t)recv_pin);
-*/
-
   // Inicjalizuj komunikację szeregową (Serial)
   Serial.begin(115200);
     
@@ -6904,32 +6839,25 @@ void setup()
   Serial.println("------------------ START of Evo Web Radio --------------------");
   Serial.println("-                                                            -");
   Serial.printf("--------- ESP32 SN: %04X%08X,  FW Ver.: %s ---------\n",(uint16_t)(chipid >> 32), (uint32_t)chipid, softwareRev);
+  Serial.println("-         FW Config  use SD:" + String(useSD) + ",  Use Two Encoders:" + String(use2encoders) + "           -");
+  Serial.println("-                                                            -");
   Serial.println("- Code source: https://github.com/dzikakuna/ESP32_radio_evo3 -");
   Serial.println("--------------------------------------------------------------");
   
   Audio::audio_info_callback = my_audio_info; // Przypisanie własnej funkcji callback do obsługi zdarzeń i informacji audio
   audio.setVolume(0);
 
-  // Ustaw pin CS dla karty SD jako wyjście i ustaw go na wysoki stan
-  //pinMode(SD_CS, OUTPUT);
-  //digitalWrite(SD_CS, HIGH);
-
   // Inicjalizacja SPI z nowymi pinami dla czytnika kart SD
   customSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // SCLK = 45, MISO = 21, MOSI = 48, CS = 47
-
-  
-  //if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0) {
-  //  Serial.println("debug IR -> Wybudzono z pilota IR!");
-  // }
 
 
   psramData = (unsigned char *)ps_malloc(PSRAM_lenght * sizeof(unsigned char));
 
   if (psramInit()) {
-    Serial.println("debug--pamiec PSRAM zainicjowana poprawnie");
-    Serial.print("Dostepna pamiec PSRAM:");
+    Serial.println("Pamiec PSRAM zainicjowana poprawnie.");
+    Serial.print("Dostepna pamiec PSRAM: ");
     Serial.println(ESP.getPsramSize());
-    Serial.print("Wolna pamiec PSRAM:");
+    Serial.print("Wolna pamiec PSRAM: ");
     Serial.println(ESP.getFreePsram());
 
 
@@ -7657,12 +7585,11 @@ void setup()
       {
         audio.setVolume(volumeValue);
       }
-      request->send(204);       // brak odpowiedzi (204)
-
-      Serial.println("debug web -> Mute ON/OFF ze strony www");
+      //Serial.println("debug web -> Mute ON/OFF ze strony www");
       displayRadio();
       wsVolumeChange(volumeValue);       
 
+      request->send(204);       // brak odpowiedzi (204)    
     });
 
     server.on("/view", HTTP_GET, [](AsyncWebServerRequest *request) 
