@@ -7,7 +7,7 @@
 //                                                                                                                     //
 // Compilator: Arduino, Platformio                                                                                     //
 // Espressif ESPcore32-s3:                      3.2.0 (works on newer but without modified libs for FLAC files)        //
-// ESP32-audioI2S-master by schreibfaul1:       3.4.3 with commits 1.12.2025                                           //
+// ESP32-audioI2S-master by schreibfaul1:       3.4.4a with commits 8.12.2025                                           //
 // ESP Async WebServer:                         3.9.1                                                                  //
 // Async TCP:                                   3.4.9                                                                  // 
 // ezButton:                                    1.0.6                                                                  //
@@ -39,7 +39,7 @@
 #include "rom/gpio.h"  // Biblioteka do mapowania pinu CS_SD
 
 // Deklaracja wersji oprogramowania i nazwy hosta widocznego w routerze oraz na ekranie OLED i stronie www
-#define softwareRev "v3.19.52"  // Wersja oprogramowania radia
+#define softwareRev "v3.19.53"  // Wersja oprogramowania radia
 #define hostname "evoradio"   // Definicja nazwy hosta widoczna na zewnątrz
 
 // Definicja pinow czytnika karty SD
@@ -2548,6 +2548,7 @@ void readSDStations()
 }
 
 // Funkcja do pobierania listy stacji radiowych z serwera
+/*
 void fetchStationsFromServer() 
 {
   displayActive = true;
@@ -2570,11 +2571,8 @@ void fetchStationsFromServer()
  
   // Wybierz URL na podstawie bank_nr za pomocą switch
   switch (bank_nr) {
-    case 1:
-      url = STATIONS_URL1;
-      break;
-    case 2:
-      url = STATIONS_URL2;
+    case 1: url = STATIONS_URL1; break;
+    case 2: url = STATIONS_URL2;
       break;
     case 3:
       url = STATIONS_URL3;
@@ -2720,6 +2718,334 @@ void fetchStationsFromServer()
   wsRefreshPage(); // Po odczytaniu banku odswiezamy WebSocket aby zaktualizować strone www
   
 }
+*/
+
+/*
+void fetchStationsFromServer() 
+{
+  displayActive = true;
+  u8g2.setFont(spleen6x12PL);
+  u8g2.clearBuffer();
+  u8g2.setCursor(21, 23);
+  u8g2.print("Loading bank:" + String(bank_nr) + " stations from:");
+  u8g2.sendBuffer();
+
+  currentSelection = 0;
+  firstVisibleLine = 0;
+  station_nr = 1;
+  previous_bank_nr = bank_nr;
+
+  HTTPClient http;
+  String url;
+
+  switch (bank_nr) {
+    case 1:  url = STATIONS_URL1; break;
+    case 2:  url = STATIONS_URL2; break;
+    case 3:  url = STATIONS_URL3; break;
+    case 4:  url = STATIONS_URL4; break;
+    case 5:  url = STATIONS_URL5; break;
+    case 6:  url = STATIONS_URL6; break;
+    case 7:  url = STATIONS_URL7; break;
+    case 8:  url = STATIONS_URL8; break;
+    case 9:  url = STATIONS_URL9; break;
+    case 10: url = STATIONS_URL10; break;
+    case 11: url = STATIONS_URL11; break;
+    case 12: url = STATIONS_URL12; break;
+    case 13: url = STATIONS_URL13; break;
+    case 14: url = STATIONS_URL14; break;
+    case 15: url = STATIONS_URL15; break;
+    case 16: url = STATIONS_URL16; break;
+    case 17: url = STATIONS_URL17; break;
+    case 18: url = STATIONS_URL18; break;
+    default:
+      Serial.println("Nieprawidłowy numer banku");
+      return;
+  }
+
+  String fileName = String("/bank") + (bank_nr < 10 ? "0" : "") + String(bank_nr) + ".txt";
+
+  if (STORAGE.exists(fileName) && bankNetworkUpdate == false) 
+  {
+    Serial.println("debug SD -> Plik banku " + fileName + " już istnieje.");
+    u8g2.setFont(spleen6x12PL);
+    if (useSD) { u8g2.print("SD Card"); } 
+    else { u8g2.print("SPIFFS"); }
+    u8g2.sendBuffer();
+    
+    readSDStations();
+    wsRefreshPage();
+    return;
+  }
+
+  bankNetworkUpdate = false;
+
+  u8g2.print("GitHub");
+  u8g2.sendBuffer();
+
+  // Utwórz pusty plik (żeby mieć pewność, że istnieje)
+  {
+    File bankFile = STORAGE.open(fileName, FILE_WRITE);
+    if (bankFile) {
+      Serial.println("debug SD -> Utworzono plik banku: " + fileName);
+      bankFile.close();
+    } else {
+      Serial.println("debug SD -> Błąd tworzenia pliku: " + fileName);
+    }
+  }
+
+  // ---- START NOWEGO BEZPIECZNEGO POBIERANIA ----
+
+  Serial.println("debug http -> Pobieram URL: " + url);
+
+  http.begin(url);
+  http.setUserAgent("ESP32-WebRadio");
+
+  int httpCode = http.GET();
+  Serial.print("debug http -> Kod odpowiedzi HTTP: ");
+  Serial.println(httpCode);
+
+  // Obsługa redirectów 301/302
+  if (httpCode == HTTP_CODE_MOVED_PERMANENTLY || httpCode == HTTP_CODE_FOUND) {
+    String newUrl = http.getLocation();
+    Serial.println("debug http -> Redirect na: " + newUrl);
+    http.end();
+
+    http.begin(newUrl);
+    http.setUserAgent("ESP32-WebRadio");
+    httpCode = http.GET();
+    Serial.println("debug http -> Kod HTTP po redirect: " + String(httpCode));
+  }
+
+  if (httpCode != HTTP_CODE_OK) {
+    Serial.println("debug http -> Błąd pobierania, kod: " + String(httpCode));
+    http.end();
+    return;
+  }
+
+  // Pobieranie strumieniowe (super stabilne)
+  WiFiClient *stream = http.getStreamPtr();
+  File bankFile = STORAGE.open(fileName, FILE_WRITE);
+
+  if (!bankFile) {
+    Serial.println("debug SD -> Błąd otwarcia pliku do zapisu!");
+    http.end();
+    return;
+  }
+
+  uint8_t buffer[256];
+  int total = 0;
+  int len = http.getSize();
+
+  while (http.connected() && (len > 0 || len == -1)) {
+    size_t sizeAvail = stream->available();
+    if (sizeAvail) {
+      int c = stream->readBytes(buffer, min((int)sizeAvail, 256));
+      bankFile.write(buffer, c);
+      total += c;
+      if (len > 0) len -= c;
+    }
+    delay(1);
+  }
+
+  bankFile.close();
+  http.end();
+
+  Serial.println("debug SD -> Zapisano " + String(total) + " bajtów");
+
+  // Jeśli plik jest pusty → usuń
+  File check = STORAGE.open(fileName, FILE_READ);
+  if (check && check.size() == 0) {
+    Serial.println("debug SD -> BŁĄD: pobrany plik ma 0 KB -> usuwam");
+    check.close();
+    STORAGE.remove(fileName);
+    return;
+  }
+  check.close();
+
+  // ----- PARSOWANIE (Twój kod – zostawiłem) -----
+
+  File fileRead = STORAGE.open(fileName, FILE_READ);
+  if (!fileRead) {
+    Serial.println("debug SD -> Nie mogę otworzyć pliku po pobraniu");
+    return;
+  }
+
+  String payload = fileRead.readString();
+  fileRead.close();
+
+  int startIndex = 0;
+  int endIndex;
+  stationsCount = 0;
+
+  while ((endIndex = payload.indexOf('\n', startIndex)) != -1 && stationsCount < MAX_STATIONS) {
+    String station = payload.substring(startIndex, endIndex);
+    if (!station.isEmpty()) sanitizeAndSaveStation(station.c_str());
+    startIndex = endIndex + 1;
+  }
+
+  wsRefreshPage();
+}
+*/
+
+void fetchStationsFromServer() 
+{
+  displayActive = true;
+  u8g2.setFont(spleen6x12PL);
+  u8g2.clearBuffer();
+  u8g2.setCursor(21, 23);
+  u8g2.print("Loading bank:" + String(bank_nr) + " stations from:");
+  u8g2.sendBuffer();
+
+  currentSelection = 0;
+  firstVisibleLine = 0;
+  station_nr = 1;
+  previous_bank_nr = bank_nr; // jesli ładujemy stacje to ustawiamy zmienna previous_bank
+
+  HTTPClient http; // Utwórz obiekt klienta HTTP
+  String url; // URL stacji dla danego banku
+
+  // ---------------------- WYBÓR URL BANKU ----------------------
+  switch (bank_nr) 
+  {
+    case 1:  url = STATIONS_URL1; break;
+    case 2:  url = STATIONS_URL2; break;
+    case 3:  url = STATIONS_URL3; break;
+    case 4:  url = STATIONS_URL4; break;
+    case 5:  url = STATIONS_URL5; break;
+    case 6:  url = STATIONS_URL6; break;
+    case 7:  url = STATIONS_URL7; break;
+    case 8:  url = STATIONS_URL8; break;
+    case 9:  url = STATIONS_URL9; break;
+    case 10: url = STATIONS_URL10; break;
+    case 11: url = STATIONS_URL11; break;
+    case 12: url = STATIONS_URL12; break;
+    case 13: url = STATIONS_URL13; break;
+    case 14: url = STATIONS_URL14; break;
+    case 15: url = STATIONS_URL15; break;
+    case 16: url = STATIONS_URL16; break;
+    case 17: url = STATIONS_URL17; break;
+    case 18: url = STATIONS_URL18; break;
+    default:
+      Serial.println("Nieprawidłowy numer banku");
+      return;
+  }
+
+  // Tworzenie nazwy pliku dla danego banku
+  String fileName = String("/bank") + (bank_nr < 10 ? "0" : "") + String(bank_nr) + ".txt";
+
+  // ---------------------- JEŚLI PLIK ISTNIEJE ----------------------
+  if (STORAGE.exists(fileName) && bankNetworkUpdate == false) 
+  {
+    Serial.println("debug SD -> Plik banku " + fileName + " już istnieje.");
+    if (useSD) { u8g2.print("SD Card"); } else { u8g2.print("SPIFFS"); }
+    u8g2.sendBuffer();
+
+    readSDStations(); // Jesli dany plik banku istnieje to odczytujemy go TYLKO z karty
+    wsRefreshPage();
+    return;
+  }
+
+  bankNetworkUpdate = false;
+
+  u8g2.print("GitHub");
+  u8g2.sendBuffer();
+
+  // ---------------------- TWORZENIE PUSTEGO PLIKU ----------------------
+  {
+    File bankFile = STORAGE.open(fileName, FILE_WRITE);
+    if (bankFile) 
+    {
+      Serial.println("debug SD -> Utworzono plik banku: " + fileName);
+      bankFile.close(); // Zamykanie pliku po utworzeniu
+    } 
+    else 
+    {
+      Serial.println("debug SD -> Błąd tworzenia pliku: " + fileName);
+    }
+  }
+
+  // ---------------------- POBIERANIE DANYCH HTTP ----------------------
+
+  Serial.println("debug http -> Pobieram URL: " + url);
+
+  http.begin(url); // Inicjalizuj żądanie HTTP do podanego adresu URL
+  http.setUserAgent("ESP32-WebRadio");   // ustaweinie userAgent
+  http.setTimeout(5000);                // 5 sekund timeout
+
+  int httpCode = http.GET();  
+  Serial.print("debug http -> Kod HTTP: ");
+  Serial.println(httpCode); // Wydrukuj dodatkowe informacje o kodzie http
+
+  // ----------- OBSŁUGA REDIRECTÓW 301 / 302 (GitHub to często robi!) -----------
+  if (httpCode == HTTP_CODE_MOVED_PERMANENTLY || httpCode == HTTP_CODE_FOUND) // jesli GitHub ustawił redirect
+  {
+    String newUrl = http.getLocation();
+    Serial.println("debug http -> Redirect: " + newUrl);
+
+    http.end();
+
+    http.begin(newUrl);
+    http.setUserAgent("ESP32-WebRadio");
+    http.setTimeout(5000);
+
+    httpCode = http.GET();
+    Serial.println("debug http -> Kod HTTP po redirect: " + String(httpCode));
+  }
+
+  // ---------------------- NIE UDAŁO SIĘ POBRAĆ ----------------------
+  if (httpCode != HTTP_CODE_OK) 
+  {
+    Serial.printf("debug http -> Błąd pobierania. Kod HTTP: %d\n", httpCode);
+    http.end();
+    return;
+  }
+
+  // ---------------------- POBRANIE GETSTRING ----------------------
+  String payload = http.getString();
+
+  Serial.println("debug http -> Długość pobranych danych: " + String(payload.length()));
+
+  // Zabezpieczenie przed pustym stringiem
+  if (payload.length() == 0) 
+  {
+    Serial.println("debug http -> BŁĄD! Pobieranie zwróciło pusty payload. Usuwam plik.");
+    STORAGE.remove(fileName);
+    http.end();
+    return;
+  }
+
+  // ---------------------- ZAPIS DO PLIKU ----------------------
+  File bankFile = STORAGE.open(fileName, FILE_WRITE);
+  if (bankFile) 
+  {
+    bankFile.print(payload);
+    bankFile.close();
+    Serial.println("debug SD -> Dane zapisane do pliku: " + fileName);
+  } 
+  else 
+  {
+    Serial.println("debug SD -> Błąd: Nie można otworzyć pliku do zapisu!");
+  }
+
+  http.end();
+
+  // ---------------------- SANITYZACJA STACJI  ----------------------
+  int startIndex = 0;
+  int endIndex;
+  stationsCount = 0;
+
+  while ((endIndex = payload.indexOf('\n', startIndex)) != -1 && stationsCount < MAX_STATIONS) 
+  {
+    String station = payload.substring(startIndex, endIndex);
+    if (!station.isEmpty())
+      sanitizeAndSaveStation(station.c_str());
+
+    startIndex = endIndex + 1;
+  }
+
+  wsRefreshPage();
+}
+
 
 void readEEPROM() // Funkcja kontrolna DEBUG odczytu EEPROMu, nie uzywan przez inne funkcje
 {
@@ -4066,10 +4392,12 @@ void changeStation()
     if (f_volumeFadeOn && !volumeMute) {startFadeIn(volumeValue);} else if (!volumeMute) {audio.setVolume(volumeValue);}   
     
     // Zapisujemy jaki numer stacji i który bank gramy tylko jesli sie zmieniły
-    if ((station_nr != stationFromBuffer || bank_nr != previous_bank_nr) && f_saveVolumeStationAlways) {saveStationOnSD();} 
+    //if ((station_nr != stationFromBuffer || bank_nr != previous_bank_nr) && f_saveVolumeStationAlways) {saveStationOnSD();}
+    
     
     if (station_nr != 0 ) {stationFromBuffer = station_nr;} 
     urlPlaying = false; // Kasujemy flage odtwarzania z adresu przesłanego ze strony WWW
+    if (f_saveVolumeStationAlways) {saveStationOnSD();} 
     //saveStationOnSD(); // Zapisujemy jaki numer stacji i który bank gramy
   } 
   else 
@@ -6284,7 +6612,7 @@ void handleEncoder2StationsVolumeClick()
 
   if ((button2.isPressed()) && (bankMenuEnable == true)) 
   {
-    previous_bank_nr = bank_nr;
+    //previous_bank_nr = bank_nr;
 
     station_nr = 1;
 
@@ -6449,7 +6777,7 @@ void handleEncoder2VolumeStationsClick()
       timeDisplay = false;
       displayActive = true;
       
-      previous_bank_nr = bank_nr;
+      //previous_bank_nr = bank_nr;
       station_nr = 1;
 
       listedStations = false;
@@ -7777,8 +8105,8 @@ void powerOff()
 
   // --------LED STANDBY (przygotowanie pod przekaźnik) ----------------
   pinMode(STANDBY_LED, OUTPUT);
-  digitalWrite(STANDBY_LED, HIGH); // Dla LED właczonego w trybie Power ON
-  //digitalWrite(STANDBY_LED, LOW); // Dla LED wylaczonego w trybie Power ON
+  digitalWrite(STANDBY_LED, HIGH); // Dla LED wyłączonego w trybie Power ON a właczonego w trybie Standby
+  //digitalWrite(STANDBY_LED, LOW); // Dla LED właczonego w trybie Power ON
 
     
   // ---------------- USTAWIAMY WAKEUP ----------------    
@@ -7870,7 +8198,7 @@ void powerOff()
       // ------------ LED STANDBY -----------
       pinMode(STANDBY_LED, OUTPUT);
       //digitalWrite(STANDBY_LED, HIGH); // Dla LED właczonego w trybie Power ON
-      digitalWrite(STANDBY_LED, LOW); // Dla LED wylaczonego w trybie Power ON
+      digitalWrite(STANDBY_LED, LOW); // Dla LED wyłączonego w trybie PowerON a właczonego w trybie Standby
       
       delay(800);
 
@@ -7887,35 +8215,37 @@ void powerOff()
 // ---- ŁADOWANIE LOGO STARTOWEGO jesli plik istnieje ----
 bool loadXBM(const char* filename) 
 {
-  File logo = STORAGE.open(filename);
-  if (!logo) 
-  {
-    Serial.println("Debug LOGO -> Brak pliku logo");
-    return false;
-  }
-
-  bool insideData = false;
-  int index = 0;
-
-  while (logo.available() && index < LOGO_SIZE) 
-  {
-    char c = logo.read();
-    // Szukamy "0x"
-    if (c == '0' && logo.peek() == 'x') 
-    {
-      logo.read(); // pomin 'x'
-      // wczytaj 2 cyfry hex
-      char hex1 = logo.read();
-      char hex2 = logo.read();
-
-      // konwersja hex -> bajt
-      char hexStr[3] = {hex1, hex2, 0};
-      logo_bits[index++] = strtol(hexStr, NULL, 16);
+    File logo = STORAGE.open(filename, FILE_READ);
+    if (!logo) return false;
+  
+    if (logo.size() == 0) {
+        logo.close();
+        return false;
     }
-  }
-  logo.close();
-  Serial.println("Debug LOGO -> Logo zaladowane poprawnie.");
-  return true;
+
+    int index = 0;
+
+    while (logo.available() && index < LOGO_SIZE) 
+    {
+        char c = logo.read();
+
+        if (c == '0' && logo.peek() == 'x') 
+        {
+            logo.read(); // skip 'x'
+            
+            char hex1 = logo.read();
+            char hex2 = logo.read();
+
+            char hexStr[3] = {hex1, hex2, 0};
+            logo_bits[index++] = strtol(hexStr, NULL, 16);
+        }
+    }
+
+    logo.close();
+  
+    if (index < LOGO_SIZE) return false;
+
+    return true;
 }
 
 void startOta()
@@ -8008,7 +8338,7 @@ void setup()
   // --------LED STANDBY dla stanu HIGH w trybie Power ON ----------------
   pinMode(STANDBY_LED, OUTPUT);
   //digitalWrite(STANDBY_LED, HIGH); // Dla LED właczonego w trybie Power ON
-  digitalWrite(STANDBY_LED, LOW); // Dla LED wylaczonego w trybie Power ON
+  digitalWrite(STANDBY_LED, LOW); // Dla LED wylaczonego w trybie Power ON, włączonego w trybie Standby
 
   // ----------------- LED CS karty SD - klon (jesli włączony) -----------------
   #ifdef SD_LED
@@ -8669,7 +8999,7 @@ void setup()
       request->send(200, "text/html", "<h1>ADC Keyboard Thresholds Updated!</h1><a href='/menu'>Go Back</a>");
       
       saveAdcConfig(); 
-      
+       
       //ODswiezenie ekranu OLED po zmianach konfiguracji
       ir_code = rcCmdBack; // Udajemy kod pilota Back
       bit_count = 32;
@@ -8712,7 +9042,13 @@ void setup()
 
       saveConfig();
       readConfig();
-      clearFlags();
+      //clearFlags();
+      
+      //Refresh
+      ir_code = rcCmdBack; // Udajemy kod pilota Back
+      bit_count = 32;
+      calcNec();          // Przeliczamy kod pilota na pełny oryginalny kod NEC
+
       //request->send(200, "text/html","<h1>Config Updated!</h1><a href='/menu'>Go Back</a>");
       request->send(200, "text/html","<!DOCTYPE html><html><head><meta http-equiv='refresh' content='2;url=/'></head><body><h1>Config Updated!</h1></body></html>");
     });
